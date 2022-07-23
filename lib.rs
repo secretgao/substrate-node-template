@@ -30,23 +30,27 @@ pub mod pallet{
 	pub enum Event<T:Config>{
 		ClaimCreated(T::AccountId,Vec<u8>),
 		ClaimRemoved(T::AccountId,Vec<u8>),
+		ClaimCall(T::AccountId,Vec<u8>),
 	}
 	#[pallet::error]
 	pub enum Error<T>{
 		ProofAlreadyExists,
 		ClaimNotExists,
-		NotClaimOwner
+		NotClaimOwner,
+		NoneValue,
+		StorageOverflow,
 	}
 	#[pallet::hooks]
 	impl<T:Config> Hooks<BlockNumberFor<T>> for Pallet<T>{}
 
 	#[pallet::call]
 	impl <T:Config> Pallet<T>{
-		//创建存证
+		//创建存证 👇👇👇👇👇👇👇👇👇👇
 		#[pallet::weight(0)]
 		pub fn create_claim(
-			origin: OriginFor<T>,
-			claim: Vec<u8>)->DispatchResultWithPostInfo{
+			origin: OriginFor<T>,//交易的发送方
+			claim: Vec<u8>//存证的hash值
+		)->DispatchResultWithPostInfo{
 			let sender = ensure_signed(origin)?;
 			ensure!(!Proofs::<T>::contains_key(&claim),Error::<T>::ProofAlreadyExists);
 
@@ -57,7 +61,8 @@ pub mod pallet{
 			Self::deposit_event(Event::ClaimCreated(sender,claim));
 			Ok(().into())
 		}
-
+		//创建存证 👆👆👆👆👆👆👆👆👆👆
+		//删除存证👇👇👇👇👇👇👇👇👇👇
 		#[pallet::weight(0)]
 		pub fn remote_claim(
 			origin:OriginFor<T>, //交易的发送方
@@ -71,5 +76,21 @@ pub mod pallet{
 			Self::deposit_event(Event::ClaimRemoved(sender,claim));
 			Ok(().into())
 		}
+		//删除存证👆👆👆👆👆👆👆👆👆👆
+		//转移存证 👇👇👇👇👇👇👇👇👇👇
+		#[pallet::weight(0)]
+		pub fn call_claim(origin:OriginFor<T>, //交易的发送方
+						  claim:Vec<u8> //存证的hash值
+		)->DispatchResultWithPostInfo{
+			let sender = ensure_signed(origin)?;
+			let (owner,_) = Proofs::<T>::get(&claim).ok_or(Error::<T>::ClaimNotExists)?;
+			ensure!(owner == sender,Error::<T>::NotClaimOwner);
+			//这里没写完
+			//Proofs::<T>::mutate(&claim,);
+
+			Self::deposit_event(Event::ClaimCall(sender,claim));
+			Ok(().into())
+		}
+		//转移存证 👆👆👆👆👆👆👆👆👆👆
 	}
 }
